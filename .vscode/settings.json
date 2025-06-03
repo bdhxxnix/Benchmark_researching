@@ -1,7 +1,10 @@
 {
+    "C_Cpp.dimInactiveRegions": false,
     "files.associations": {
-        "*.dbclient-js": "javascript",
-        "fstream": "cpp",
-        "iostream": "cpp"
+        "cstdlib": "cpp",
+        "chrono": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "vector": "cpp"
     }
 }

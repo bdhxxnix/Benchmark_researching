@@ -1,3 +1,6 @@
 build/
+.vscode/
 data/
 result/
+*.json
+*.txt

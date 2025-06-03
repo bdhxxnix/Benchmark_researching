@@ -305,56 +305,56 @@ size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out,int para
 }
 
 
-/**
- * @brief A method to check the rightness of the segmentation of greedyPLR 
- * 
- * @tparam SegmentType 
- * @param data 
- * @param segments 
- */
-template <typename Fin>
-void checkForEpsilon(Fin data, auto segments,int begin = 0,int ed = 1, double epsilon = 0.1){
+// /**
+//  * @brief A method to check the rightness of the segmentation of greedyPLR 
+//  * 
+//  * @tparam SegmentType 
+//  * @param data 
+//  * @param segments 
+//  */
+// template <typename Fin>
+// void checkForEpsilon(Fin data, auto segments,int begin = 0,int ed = 1, double epsilon = 0.1){
     
-    auto start = segments[begin].first_x;
-    auto end = segments[ed].last_x;
+//     auto start = segments[begin].first_x;
+//     auto end = segments[ed].last_x;
     
-    int segmnt_idx = begin;
-    auto seg = segments[segmnt_idx];
-    auto slope = seg.slope;
-    auto intercept = seg.intercept;
-    auto first_x = seg.first_x;
-    auto last_x = seg.last_x;
+//     int segmnt_idx = begin;
+//     auto seg = segments[segmnt_idx];
+//     auto slope = seg.slope;
+//     auto intercept = seg.intercept;
+//     auto first_x = seg.first_x;
+//     auto last_x = seg.last_x;
 
-    int i = 0;
-    auto max_residual = std::numeric_limits<double>::min();
-    while (data(i) <= end)
-    {
-        if (data(i) == last_x)
-        {
-            // printout the max_residual
-            if(max_residual > epsilon + 1){
-                printf("The max_residual for Segment %d is %f\n",segmnt_idx,max_residual);
-                printf("The slope is %Lf and the intercept is %Lf\n",slope,intercept);
-                printf("The first_x is %f and the last_x is %f\n",first_x,last_x);
-            }
-            max_residual = std::numeric_limits<double>::min();
+//     int i = 0;
+//     auto max_residual = std::numeric_limits<double>::min();
+//     while (data(i) <= end)
+//     {
+//         if (data(i) == last_x)
+//         {
+//             // printout the max_residual
+//             if(max_residual > epsilon + 1){
+//                 printf("The max_residual for Segment %d is %f\n",segmnt_idx,max_residual);
+//                 printf("The slope is %Lf and the intercept is %Lf\n",slope,intercept);
+//                 printf("The first_x is %f and the last_x is %f\n",first_x,last_x);
+//             }
+//             max_residual = std::numeric_limits<double>::min();
            
-            segmnt_idx++;
-            if(segmnt_idx>=segments.size()){
-                break;
-            }
-            seg = segments[segmnt_idx];
-            slope = seg.slope;
-            intercept = seg.intercept;
-            first_x = seg.first_x;
-            last_x = seg.last_x;
-        }
-        auto residual = std::abs(i - (slope*data(i) + intercept));
-        if(residual>max_residual){
-            max_residual = residual;
-        }
-        i++;
-    }
-    printf("\n");
-    }
+//             segmnt_idx++;
+//             if(segmnt_idx>=segments.size()){
+//                 break;
+//             }
+//             seg = segments[segmnt_idx];
+//             slope = seg.slope;
+//             intercept = seg.intercept;
+//             first_x = seg.first_x;
+//             last_x = seg.last_x;
+//         }
+//         auto residual = std::abs(i - (slope*data(i) + intercept));
+//         if(residual>max_residual){
+//             max_residual = residual;
+//         }
+//         i++;
+//     }
+//     printf("\n");
+//     }
 }

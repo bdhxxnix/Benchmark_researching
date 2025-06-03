@@ -7,7 +7,7 @@
 #include <chrono>
 #include "fitting_tree.hpp"
 
-#define Filename "/mnt/Database/Datasets/SOSD/books_200M_uint32"
+#define Filename "../data/SOSD_Dataset/books_800M_uint64/books_800M_uint64"
 
 typedef uint32_t K;
 
@@ -31,6 +31,7 @@ void testForModel(std::vector<K> data, T &fitting_tree) {
     double avg_time_sum = 0;
     
     for(int k = 0; k < 3; k++) {
+        time_sum = 0;
         for(int i = 0; i < 1000; i++) {
             int index = rand() % data.size();
             auto start_search = std::chrono::high_resolution_clock::now();

@@ -128,8 +128,7 @@ protected:
         auto it = segments.begin() + *(levels_offsets.end() - 2);
         for (auto l = int(height()) - 2; l >= 0; --l) {
             auto level_begin = segments.begin() + levels_offsets[l];
-            auto pos1 = (*it)(key);
-            auto pos = size_t((*it)(key) > 0 ? (*it)(key) : 0);
+            auto pos = std::min<size_t>( ((*it)(key) > 0 ? (*it)(key) : 0) , levels_offsets[l + 1] - levels_offsets[l] - 1);
             auto lo = level_begin + PGM_SUB_EPS(pos, EpsilonRecursive + 1);
 
             static constexpr size_t linear_search_threshold = 8 * 64 / sizeof(Segment);
@@ -234,8 +233,8 @@ public:
 template<typename K, size_t Epsilon, size_t EpsilonRecursive, typename Floating>
 struct PGMIndex<K, Epsilon, EpsilonRecursive, Floating>::Segment {
     K key;              ///< The first key that the segment indexes.
-    double slope;     ///< The slope of the segment.
-    double intercept; ///< The intercept of the segment.
+    float slope;     ///< The slope of the segment.
+    int32_t intercept; ///< The intercept of the segment.
 
     Segment() = default;
 
@@ -263,7 +262,6 @@ struct PGMIndex<K, Epsilon, EpsilonRecursive, Floating>::Segment {
      * @return the approximate position of the specified key
      */
     inline double operator()(const K &k) const {
-        double pos = slope *k + intercept;
         
         return (slope * k + intercept);
     }

@@ -1,0 +1,2 @@
+TestTrue.o: TestTrue.cc /usr/include/stdc-predef.h
+/usr/include/stdc-predef.h:
