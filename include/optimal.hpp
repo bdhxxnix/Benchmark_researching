@@ -22,7 +22,7 @@
 #define omp_get_max_threads() 1
 #endif
 
-namespace pgm::internal {
+namespace Optimal::internal {
 
 template<typename T>
 using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
@@ -345,7 +345,66 @@ size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out, int par
     return c;
 }
 
+/**
+ * @brief A method to check the rightness of the segmentation of greedyPLR 
+ * @tparam Fin the type of the input function 
+ * @tparam CaononicalSegmentType
+ * @param n The number of elements in the data
+ * @param data 
+ * @param segments 
+ */
+template <typename Fin, typename SegmentType>
+void checkForEpsilon(size_t n ,Fin data, std::vector<SegmentType> segments,int begin = 0,int ed = 1, size_t epsilon = 0.1){
+    
+    auto start = segments[begin].get_first_x();
+    auto end = segments[ed+1].get_first_x();
+    
+    int segmnt_idx = begin;
+    auto seg = segments[segmnt_idx].get_floating_point_segment(0);
+    auto slope = seg.first;
+    auto intercept = seg.second;
+    auto first_x = segments[segmnt_idx].get_first_x();
+    auto last_x = segments[segmnt_idx+1].get_first_x();
 
+    size_t i = 0;
+    while(data(i)<start) i++;
+    
+    auto max_residual = std::numeric_limits<double>::min();
+    
+    while (data(i) <= end && i < n )
+    {
+        auto key = data(i);
+        auto pre  = slope * key +intercept ;
+        auto residual = std::abs(i - pre);
+        
+        if(residual>max_residual && data(i) != last_x){
+            max_residual = residual;
+        }
 
+        if (data(i) == last_x)
+        {
+            // printout the max_residual
+            if(max_residual > epsilon + 1){
+                printf("The max_residual for Segment %d is %f\n",segmnt_idx,max_residual);
+                printf("The slope is %Lf and the intercept is %Lf\n",slope,intercept);
+                printf("The first_x is %ld and the last_x is %ld\n",first_x,last_x);
+            }
+            max_residual = std::numeric_limits<double>::min();
+
+            segmnt_idx++;
+            if(segmnt_idx>=segments.size()){
+                break;
+            }
+            seg = segments[segmnt_idx].get_floating_point_segment(0);
+            slope = seg.first;
+            intercept = seg.second;
+            first_x = segments[segmnt_idx].get_first_x();
+            last_x = segments[segmnt_idx+1].get_first_x();
+        }
+        
+        i++;
+    }
+}
 
 } 
+

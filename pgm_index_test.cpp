@@ -1,375 +1,239 @@
 
 #include <cstdlib>
 #include <fstream>
-#include "pgm_index.hpp"
-#include "greedyplrBasedPGM.hpp"
-#include "swingBasedPGM.hpp"
+#include "optimalPGM.hpp"
+#include "greedyPGM.hpp"
+#include "swingPGM.hpp"
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <omp.h>
+#include <random>
+#include <chrono>
 
-#define Filename "../data/osmdata.txt"
-typedef uint32_t K;
+#define FILE_NAME "../data/SOSD_Dataset/books"
 
 struct Result {
 	double build_time;
 	double search_time;
 	size_t index_size;
+	size_t height;
+	std::vector<int> segOfLayer;
 };
 
-struct Results{
-	std::vector<double> build_time;
-	std::vector<double> search_time;
-	std::vector<size_t> index_size;
-	
-};
 
+/**
+ * @brief Translate the data from the file to the vector
+ *
+ * @param filename
+ * @return std::vector<K>
+ */
 template<typename K>
-void load_data(std::vector<K> &data) {
+std::vector<K> load_data()
+{
 
-	// Load data from a file or generate it
-	std::ifstream file(Filename);
-	if (!file.is_open()) {
-		std::cerr << "Error opening file: " << Filename << std::endl;
-		return;
-	}
-	K value;
-	while(file >> value) {
-		data.push_back(value);
-	}
-	file.close();
+    /* Open file. */
+    std::ifstream in(FILE_NAME, std::ios::binary);
+    if (!in.is_open())
+        exit(EXIT_FAILURE);
+
+    /* Read number of keys. */
+    K n_keys;
+    in.read(reinterpret_cast<char *>(&n_keys), sizeof(K));
+
+    /* Initialize vector. */
+    std::vector<K> data;
+    data.resize(n_keys);
+
+    /* Read keys. */
+    in.read(reinterpret_cast<char *>(data.data()), n_keys * sizeof(K));
+    in.close();
+
+    /* Sort the data in increasing order. */
+    return data;
 }
 
-template <typename T>
-double searchForKey(std::vector<K> data, T model, int parallelism = 1) {
 
-	// Randomly pick 1000 elements from the data and search for them
+
+/**
+ *  Print out the results of a certain algorithm based on epi variation
+ */
+void printout(std::vector<Result> results){
 	
-	double time_sum = 0;
-	double avg_time_sum = 0;
+	std::vector<double> build_times;
+	std::vector<double> search_times;
+	std::vector<size_t> index_size;
+	std::vector<size_t> heights;
+	std::vector<std::vector<int>> segOfLayers;
 
-
-	for(int k = 0; k< 3 ; k++){
-		time_sum = 0;
-		# pragma omp parallel for reduction(+:time_sum) num_threads(parallelism)
-		for(int i = 0;i<1000;i++){
-			int index = rand() % data.size();
-			auto start_search = std::chrono::high_resolution_clock::now();
-			model.search(data[index]);
-			auto end_search = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> search_duration = end_search - start_search;
-			double time = search_duration.count();	
-			
-			time_sum += time;
-		}
-		auto avg_time  = time_sum / 1000;
-		avg_time_sum += avg_time;
-		// std::cout << "Average time taken to search: " << avg_time << " seconds" << std::endl;
+	for(auto result : results){
+		build_times.push_back(result.build_time);
+		search_times.push_back(result.search_time);
+		index_size.push_back(result.index_size);
+		heights.push_back(result.height);
+		segOfLayers.push_back(result.segOfLayer);
 	}
-	auto avg_time = avg_time_sum / 3;
 
-    return avg_time;
-}
-
-
-template<typename T>
-Result testForModel(std::vector<K> data) {
-    Result result;	
-	// Get the time of constructing the whole PGM-Index
-	auto start = std::chrono::high_resolution_clock::now();
-	T model(data.begin(), data.end());
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> duration = end - start;
-	double time = duration.count();
-	result.build_time = time;
-
-	result.search_time = searchForKey(data, model);
-	result.index_size = model.size_in_bytes();
-	
-	return result;
-}
-
-void printout(Results results){
-	auto build_time_vector = results.build_time;
-	auto search_time_vector = results.search_time;
-	auto index_size_vector = results.index_size;
-	printf("The build time is :");
-	for(size_t i = 0 ;i<build_time_vector.size();i++){
-		std::cout<< build_time_vector[i] <<",";
+	printf("\nThe build time is :");
+	for(size_t i = 0 ; i< build_times.size();i++){
+		printf("%f,",build_times[i]);
+		if((i+1)%12 == 0) printf("\n");
 	}
-	printf("\nThe search time is: ");
-	for(size_t i = 0 ;i < search_time_vector.size();i++){
-		std::cout << search_time_vector[i] << ",";
+	printf("\nThe search time is :");
+	for(size_t i = 0 ; i< build_times.size();i++){
+		if(i%12 == 0) printf("[");
+		std::cout<<search_times[i];
+		if((i+1)%12 == 0) printf("],\n");
+		else printf(",");
 	}
+
 	printf("\nThe index size is :");
-	for(size_t i = 0 ; i <index_size_vector.size();i++){
-		std::cout << index_size_vector[i]<< ",";
+	for(size_t i = 0 ; i< build_times.size();i++){
+		
+		printf("%ld,",index_size[i]);
+		if((i+1)%12 == 0) printf("\n");
 	}
+
+	printf("\nThe height is :");
+	for(size_t i = 0 ; i < build_times.size();i++){
+		printf("%ld,",heights[i]);
+		if((i+1)%12 == 0) printf("\n");
+	}
+	printf("\nThe #seg of each layers is :");
+	for(size_t i = 0 ; i<  build_times.size();i++){
+		printf("{");
+		for(size_t j = 0 ; j< segOfLayers[i].size();j++){
+			printf("%d,",segOfLayers[i][j]);
+		}
+		printf("} ");
+		if((i+1)%12 == 0) printf("\n");
+	}
+
 	printf("\n");
 }
 
-void experiment_linear(std::vector<K> data, int threads_num = 16) {
+
+template<typename K,typename T>
+void testForModel(std::vector<K> data) {
 	
 	
-	Results results;
-	Result result;
+    Result result;	
+	std::vector<Result> results;
 
-	using PGM_Index1 = pgm::PGMIndex<K, 4, 4>;
-	result = testForModel<PGM_Index1>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
+	int begin = 2;
+	int ed = 13;
+	for(int i = begin; i< ed;i++){
+		for(int j = begin; j< ed;j++){
+			// Begin an evaluation with different eps and eps_rec
+			size_t epsilon = 1<<i;
+			size_t epsilon_rec = 1<<j;
 
-	using PGM_Index2 = pgm::PGMIndex<K, 8, 8>;
-	result = testForModel<PGM_Index2>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index3 = pgm::PGMIndex<K, 16, 16>;
-	result = testForModel<PGM_Index3>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index4 = pgm::PGMIndex<K, 32, 32>;
-	result = testForModel<PGM_Index4>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index5 = pgm::PGMIndex<K, 64, 64>;
-	result = testForModel<PGM_Index5>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index6 = pgm::PGMIndex<K, 128, 128>;
-	result = testForModel<PGM_Index6>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index7 = pgm::PGMIndex<K, 256, 256>;
-	result = testForModel<PGM_Index7>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index8 = pgm::PGMIndex<K, 512, 512>;
-	result = testForModel<PGM_Index8>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index9 = pgm::PGMIndex<K, 1024, 1024>;
-	result = testForModel<PGM_Index9>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index10 = pgm::PGMIndex<K, 2048, 2048>;
-	result = testForModel<PGM_Index10>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index11 = pgm::PGMIndex<K, 4096, 4096>;
-	result = testForModel<PGM_Index11>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index12 = pgm::PGMIndex<K, 8192, 8192>;
-	result = testForModel<PGM_Index12>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-
-
-	printf("The results for OptimalPLR:\n");
+			printf("The epsilon is:%ld epsilon_i is %ld\n",epsilon,epsilon_rec);
+			std::vector<std::vector<long>> residuals;
+			// Get the time of constructing the whole PGM-Index
+			auto start = std::chrono::high_resolution_clock::now();
+			T model(data.begin(),data.end(),epsilon , epsilon_rec);
+			auto end = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> duration = end - start;
+			double time = duration.count();
+			result.build_time = time;
+			result.height = model.height();
+			result.segOfLayer = model.get_levels_offsets();
+	
+			// Randomly pick 1000 elements from the data and search for them
+			std::vector<double> times;
+			for(int k = 0; k< 10 ; k++){
+				
+				auto start = std::chrono::high_resolution_clock::now(); 	
+				for(int i = 0;i<1000;i++){
+					int index = rand() % data.size();
+					
+					auto app = model.search(data[index]);
+					residuals.push_back(app.residuals);
+					auto it = std::prev(std::upper_bound(data.begin()+app.lo,data.begin()+app.hi,data[index]));
+				
+					if(i>1000){
+						printf("%ld",*it);
+					}
+				}
+				auto end = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> duration = end - start;
+				double time = duration.count();
+				time = time/1000.0;
+				times.push_back(time);
+			}
+			
+			std::sort(times.begin(),times.end());
+			double avg_time_sum = 0;
+			for(int i  = 1; i < 9 ; i++){
+				avg_time_sum += times[i];
+			}
+			
+			result.search_time = avg_time_sum / 8.0;
+			result.index_size = model.size_in_bytes();
+			
+			results.push_back(result);
+			for(int i = 0;i<residuals[0].size();i++){
+				long res = 0;
+				for(int j = 0;j<residuals.size();j++){
+					res +=residuals[j][i];
+				}
+				double res_d = res/10000.0;
+				printf("The average residual for layer %d is %f\n",i,res_d);
+			}	
+			printf("\n");
+		}
+	}
 	printout(results);
+
 }
 
-void experiment_greedy(std::vector<K> data, int threads_num = 16) {
 
+template<typename K>
+void experiment_Optimal(std::vector<K> data) {
 	
-	Results results;
-	Result result;
+	printf("The results for OptimalPLA:\n");
+	using PGM_Index1 = Optimal::PGMIndex<K>;
+	testForModel<K,PGM_Index1>(data);
 
-	using PGM_Index1 = Greedy::PGMIndex<K, 4, 4>;
-	result = testForModel<PGM_Index1>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index2 = Greedy::PGMIndex<K, 8, 8>;
-	result = testForModel<PGM_Index2>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index3 = Greedy::PGMIndex<K, 16, 16>;
-	result = testForModel<PGM_Index3>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index4 = Greedy::PGMIndex<K, 32, 32>;
-	result = testForModel<PGM_Index4>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index5 = Greedy::PGMIndex<K, 64, 64>;
-	result = testForModel<PGM_Index5>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index6 = Greedy::PGMIndex<K, 128, 128>;
-	result = testForModel<PGM_Index6>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index7 = Greedy::PGMIndex<K, 256, 256>;
-	result = testForModel<PGM_Index7>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index8 = Greedy::PGMIndex<K, 512, 512>;
-	result = testForModel<PGM_Index8>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index10 = Greedy::PGMIndex<K, 1024, 1024>;
-	result = testForModel<PGM_Index10>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index11 = Greedy::PGMIndex<K, 2048, 2048>;
-	result = testForModel<PGM_Index11>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index12 = Greedy::PGMIndex<K, 4096, 4096>;
-	result = testForModel<PGM_Index12>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index13 = Greedy::PGMIndex<K, 8192, 8192>;
-	result = testForModel<PGM_Index13>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-
-	printf("The results for greedyPLR:\n");
-	printout(results);
 }
 
-void experiment_Swing(std::vector<K> data, int threads_num = 16) {
+template<typename K>
+void experiment_Greedy(std::vector<K> data) {
+
+	
+	using PGM_Index = Greedy::PGMIndex<K>;
+	
+	printf("The results for GreedyPLA:\n");
+	testForModel<K,PGM_Index>(data);
+}
+
+template<typename K>
+void experiment_Swing(std::vector<K> data) {
 	
 		
-	Results results;
-	Result result;
 
-	using PGM_Index1 = PGM_S::PGMIndex<K, 4, 4>;
-	result = testForModel<PGM_Index1>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index2 = PGM_S::PGMIndex<K, 8, 8>;
-	result = testForModel<PGM_Index2>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index3 = PGM_S::PGMIndex<K, 16, 16>;
-	result = testForModel<PGM_Index3>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index4 = PGM_S::PGMIndex<K, 32, 32>;
-	result = testForModel<PGM_Index4>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index5 = PGM_S::PGMIndex<K, 64, 64>;
-	result = testForModel<PGM_Index5>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index6 = PGM_S::PGMIndex<K, 128, 128>;
-	result = testForModel<PGM_Index6>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index7 = PGM_S::PGMIndex<K, 256, 256>;
-	result = testForModel<PGM_Index7>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index8 = PGM_S::PGMIndex<K, 512, 512>;
-	result = testForModel<PGM_Index8>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index9 = PGM_S::PGMIndex<K, 1024, 1024>;
-	result = testForModel<PGM_Index9>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index10 =PGM_S::PGMIndex<K, 2048, 2048>;
-	result = testForModel<PGM_Index10>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index11 =PGM_S::PGMIndex<K, 4096, 4096>;
-	result = testForModel<PGM_Index11>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-	using PGM_Index12 =PGM_S::PGMIndex<K, 8192, 8192>;
-	result = testForModel<PGM_Index12>(data);
-	results.build_time.push_back(result.build_time);
-	results.search_time.push_back(result.search_time);
-	results.index_size.push_back(result.index_size);
-
-
-
+	using PGM_Index = Swing::PGMIndex<K>;
 	printf("The results for SwingFilter:\n");
-	printout(results);
+	testForModel<K,PGM_Index>(data);
 }
 
 
 
 int main() {
 	// Load the data
+	typedef uint64_t K;
 	std::vector<K> data;
-	load_data(data);
+	data = load_data<K>();
+
+	data.pop_back();
+	std::cout<<data[data.size()-1]<<std::endl;
 	printf("The size of the data is %ld\n",data.size());
 	
 	experiment_Swing(data);
-	// experiment_greedy(data);
-	// experiment_linear(data);
+	experiment_Greedy(data);
+	experiment_Optimal(data);
+
 	return 0;
 }

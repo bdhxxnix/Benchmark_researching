@@ -1,5 +1,5 @@
 #pragma once
-#include <iostream>
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -20,14 +20,14 @@
 #endif
 
 
-namespace Greedy::internal {
+namespace FRS::internal {
 template <typename T>
 using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
                                                 long double,
                                                 std::conditional_t<(sizeof(T) < 8), int64_t, __int128>>;
 
 template <typename X, typename Y>
-class GreedyPiecewiseLinearModel
+class FRSPiecewiseLinearModel
 {
 private:
     using SX = LargeSigned<X>;
@@ -53,96 +53,57 @@ private:
         };
     };
 
-    X first_x = 0;      // First x value of the segment
-    X last_x = 0;       // Last x value of the segment
-    Point initial[2];   // Initial points of the segment
-    Point end[2];       // End points of the segment
-    int points = 0;     // Number of points in the segment, used to check if this is the first point or not
+    X first_x = 0;  // First x value of the segment
+    X last_x = 0;   // Last x value of the segment
+    int points = 0; // Number of points in the segment, used to check if this is the first point or not
 
     const Y epsilon;    // Error bound for the PLA method
-    long double rho_max, rho_min;   // Maximum and minimum slopes of the segment  
-    std::pair<long double, long double> so; // Pivot point of the segment, used to calculate the intercept
-
-    
+    const X upperbound; // Upper bound for the x values, used to calculate the fixed slope
+    const Y last_y;     // Last y value, used to calculate the fixed slope
+    long double slope;  // Slope of the segment
+    long double intercept;// Intercept of the segment
 
 public:
     class CanonicalSegment;
 
-    explicit GreedyPiecewiseLinearModel(Y epsilon) : epsilon(epsilon)
+    explicit FRSPiecewiseLinearModel(Y epsilon, X upperbound, Y last_y) 
+    : epsilon(epsilon),upperbound(upperbound), last_y(last_y)
     {
-        if (epsilon < 0)
-            throw std::invalid_argument("epsilon cannot be negative");
+        if (epsilon < 0 || upperbound < 0)
+            throw std::invalid_argument("epsilon or upperbound cannot be negative");
     }
 
     bool add_point(const X &x, const Y &y)
     {
         
-        
-        auto max_y = std::numeric_limits<Y>::max();
-        auto min_y = std::numeric_limits<Y>::lowest();
-        Point p1{x, y >= max_y - epsilon ? max_y : y + epsilon};
-        Point p2{x, y <= min_y + epsilon ? min_y : y - epsilon};
-
+        last_x = x;
+        Point thisP = {x,y};
 
         if (points == 0)
         {
             // It is the first point of the segment
             first_x = x;
-            initial[0] = p1;
-            initial[1] = p2;
+            Point finalPoint = {upperbound,last_y};
+            slope = finalPoint - thisP;
+            intercept = static_cast<double>(y) - slope * x;
             points++;
-            last_x = x;
             return true;
         }
 
-        if (points == 1)
-        {   
-            // It is the second point of the segment
-            end[0] = p1;
-            end[1] = p2;
-            points++;
-            long double so_x = (static_cast<long double>(end[0].x) + initial[0].x)/2.0;
-            long double so_y = (static_cast<long double>(end[0].y)+initial[0].y+end[1].y+initial[1].y)/4.0;
-            rho_min = initial[0] - end[1];
-            rho_max = initial[1] - end[0];
-            so = {so_x, so_y};
-            last_x = x;
-            return true;
-        }
+        long double pre = slope * x + intercept;
+        long double residual = std::abs(pre - static_cast<double>(y));
 
-        double slope1 = (static_cast<long double>(y -epsilon) - so.second) / (static_cast<long double>(x) - so.first);
-        double slope2 = (static_cast<long double>(y +epsilon) - so.second) / (static_cast<long double>(x) - so.first);
-        bool outside_line1 = slope1 > rho_max;
-        bool outside_line2 = slope2 < rho_min;
-
-        if (outside_line1 || outside_line2)
+        if (residual > epsilon)
         {
             points = 0;
             return false;
         }
-
-        if (slope2 < rho_max)
-        {
-            end[0] = p1;
-            rho_max = slope2;
-        }
-
-        if (slope1 > rho_min)
-        {
-            end[1] = p2;
-            rho_min = slope1;
-        }
-        last_x = x;
         return true;
     }
 
     CanonicalSegment get_segment()
     {
-        if (points == 1)
-        {
-            return CanonicalSegment(initial[0], initial[1], first_x, last_x);
-        }
-        return CanonicalSegment(so, end[0], end[1], first_x, last_x);
+        return CanonicalSegment(slope,intercept,first_x, last_x);
     }
 
     void reset()
@@ -152,15 +113,15 @@ public:
 };
 
 template <typename X, typename Y>
-class GreedyPiecewiseLinearModel<X, Y>::CanonicalSegment
+class FRSPiecewiseLinearModel<X, Y>::CanonicalSegment
 {
 public:
     CanonicalSegment() = default;
 
-    friend class GreedyPiecewiseLinearModel;
+    friend class FRSPiecewiseLinearModel;
 
-    std::pair<long double, long double> so;
-    Point end[2];
+    long double slope ;
+    long double intercept;
     X first_x;
     X last_x;
 
@@ -169,47 +130,23 @@ public:
         Segment() = default;
         public:
         long double slope;
-        int64_t intercept;
+        long double intercept;
         X first_x;
         X last_x;
     };
 
-    CanonicalSegment(const Point &p1, const Point &p2, X first_x, X last_x) :end{p1, p2}, first_x(first_x), last_x(last_x) {
-        so = { (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 };
-    };
+    CanonicalSegment(long double slope, long double intercept, X first_x, X last_x) 
+    : slope(slope), intercept(intercept),first_x(first_x), last_x(last_x) {};
 
-    CanonicalSegment(std::pair<long double, long double> so, const Point &p1, const Point &p2, X first_x, X last_x)
-        : so(so), end{p1, p2}, first_x(first_x), last_x(last_x) {};
-
-    bool one_point() const
+    Segment get_Canonicalsegment() const
     {
-        return so.first == end[0].x;
-    }
-
-    Segment get_Canonicalsegment(const X &origin) const
-    {
-        Point p1 = this->end[0];
-        Point p2 = this->end[1];
-        
-
-        if (one_point())
-            return {0, static_cast<long double>(end[0].y + end[1].y) / 2, first_x, last_x};
-
-        auto [i_x, i_y] = so;
-        
-        long double rho_max = (static_cast<long double>(p1.y) - i_y) / (static_cast<long double>(p1.x) - i_x);
-        long double rho_min = (static_cast<long double>(p2.y) - i_y) / (static_cast<long double>(p2.x) - i_x);
-
-        long double slope =  (rho_max + rho_min) / 2.;
-        long double raw_intercept = i_y - slope * (i_x - static_cast<double>(origin));
-        int64_t intercept = static_cast<int64_t>(std::llround(raw_intercept));
         Segment result =Segment(slope, intercept, first_x, last_x);
         return result;
     }
 
-    
 		
 };
+
 
 /**
  * @brief a method to make a segmentation of the input data using the frs algorithm
@@ -222,11 +159,12 @@ public:
  * @return the number of segments created
  */
 template <typename Fin, typename Fout>
-size_t make_segmentation(size_t n, size_t start, size_t end, double epsilon, Fin in, Fout out)
+size_t make_segmentation(size_t n, size_t start, size_t end, size_t epsilon, Fin in, Fout out)
 {
+
     using K = typename std::invoke_result_t<Fin, size_t>;
     size_t c = 0;
-    GreedyPiecewiseLinearModel<K, int> opt(epsilon);
+    FRSPiecewiseLinearModel<K, int> opt(epsilon,in(n-1),n-1);
     auto add_point = [&](K x, size_t y)
     {
         
@@ -235,7 +173,6 @@ size_t make_segmentation(size_t n, size_t start, size_t end, double epsilon, Fin
             out(opt.get_segment());
             opt.add_point(x, y);
             ++c;
-            
         }
     };
 
@@ -258,13 +195,12 @@ size_t make_segmentation(size_t n, size_t start, size_t end, double epsilon, Fin
             add_point(in(i), i);
         }
     }
-    if (end >= start + 2 && in(end - 1) != in(end - 2))
-        add_point(in(end - 1),(end-1));
 
     out(opt.get_segment());
     return ++c;
 }
 
+// Overloaded convenience wrapper for the full range of the input data
 template <typename Fin, typename Fout>
 size_t make_segmentation(size_t n, double epsilon, Fin in, Fout out)
 {
@@ -272,12 +208,18 @@ size_t make_segmentation(size_t n, double epsilon, Fin in, Fout out)
 }
 
 
-// The parallel version of the segmentation method
+/**
+ * @brief A method to make a parallel segmentation of the input data using the FRS algorithm
+ * @param n The number of elements in the data
+ * @param epsilon The error bound for the segmentation
+ * @param in The input function that takes an index and returns the value at that index
+ * @param out The output function that puts the created segments in pointed vector
+ * @param parallelism The number of threads to use for parallelization
+ * @return The number of segments created
+ */
 template <typename Fin, typename Fout>
 size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out,int parallelism = 16)
 {
-    
-    // printf("The number of threads is %d\n", parallelism);
     auto chunk_size = n / parallelism;
     auto c = 0ull;
 
@@ -285,7 +227,7 @@ size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out,int para
         return make_segmentation(n, epsilon, in, out);
 
     using K = typename std::invoke_result_t<Fin, size_t>;
-    using canonical_segment = typename GreedyPiecewiseLinearModel<K, int>::CanonicalSegment;
+    using canonical_segment = typename FRSPiecewiseLinearModel<K, int>::CanonicalSegment;
     std::vector<std::vector<canonical_segment>> results(parallelism);
 
 #pragma omp parallel for reduction(+ : c) num_threads(parallelism)
@@ -315,21 +257,24 @@ size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out,int para
     return c;
 }
 
+
 /**
- * @brief A method to check the correctness of the segmentation of greedy PLA
+ * @brief A method to check the rightness of the segmentation of greedyPLR 
  * @tparam Fin the type of the input function
  * @tparam SegmentType the type of the segments
- * @param data the input data function
- * @param segments the list of segments generated
- * @param begin the starting segment index for verification
- * @param ed the ending segment index for verification
- * @param epsilon the error bound
+ * @param data the input data
+ * @param segments the segments created by the segmentation algorithm that to be checked
+ * @param begin the index of the first segment to check
+ * @param ed the index of the last segment to check
+ * @param epsilon the error bound for the segmentation
+ * @return void
  */
 template <typename Fin, typename SegmentType>
-void checkForEpsilon(size_t n ,Fin data, std::vector<SegmentType> segments,int begin = 0,int ed = 1, size_t epsilon = 0.1){
+void checkForEpsilon(Fin data, std::vector<SegmentType> segments,int begin = 0,int ed = 1, double epsilon = 0.1){
+    
     auto start = segments[begin].first_x;
     auto end = segments[ed].last_x;
-
+    
     int segmnt_idx = begin;
     auto seg = segments[segmnt_idx];
     auto slope = seg.slope;
@@ -338,35 +283,37 @@ void checkForEpsilon(size_t n ,Fin data, std::vector<SegmentType> segments,int b
     auto last_x = seg.last_x;
 
     size_t i = 0;
-    while(data(i) < start) i++;
-
-    double max_residual = std::numeric_limits<double>::min();
-    while (data(i) <= end && i < n ) {
-        auto key = data(i);
-        auto predicted = slope * key + intercept;
-        auto residual = std::abs(i - predicted);
-
-        if(residual > max_residual && data(i) != last_x) {
-            max_residual = residual;
-        }
-
-        if (data(i) == last_x) {
-            if(max_residual > epsilon + 1) {
-                printf("The max_residual for Segment %d is %f\n", segmnt_idx, max_residual);
-                printf("The slope is %Lf and the intercept is %Lf\n", slope, intercept);
-                printf("The first_x is %ld and the last_x is %ld\n", first_x, last_x);
+    while(data(i)<start) i++;
+    auto max_residual = std::numeric_limits<double>::min();
+    while (data(i) <= end)
+    {
+        if (data(i) == last_x)
+        {
+            // if the max residual is larger than the error bound, printout the max_residual
+            if(max_residual > epsilon + 1){
+                printf("The max_residual for Segment %d is %f\n",segmnt_idx,max_residual);
+                printf("The slope is %Lf and the intercept is %Lf\n",slope,intercept);
+                printf("The first_x is %ld and the last_x is %ld\n",first_x,last_x);
             }
             max_residual = std::numeric_limits<double>::min();
+            
             segmnt_idx++;
-            if(segmnt_idx >= segments.size()) break;
+            if(segmnt_idx>=segments.size()){
+                break;
+            }
             seg = segments[segmnt_idx];
             slope = seg.slope;
             intercept = seg.intercept;
             first_x = seg.first_x;
             last_x = seg.last_x;
         }
+        auto residual = std::abs(i - (slope*data(i) + intercept));
+        if(residual>max_residual){
+            max_residual = residual;
+        }
         i++;
     }
+    printf("\n");
 }
 
-} // namespace Greedy::internal
+}

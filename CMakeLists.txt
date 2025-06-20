@@ -4,14 +4,13 @@ project(Benchmark_researching)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-Wall -O0 -g -ggdb3")
-# set(CMAKE_CXX_FLAGS "-Wall -O3")
 
 # Add include directories to each target
 set(PROJECT_INCLUDES
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/include/stx-btree-0.8.6/include)
 
-# 添加OpenMP支持
+# OpenMP Support
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -23,12 +22,11 @@ target_include_directories(pgmtest PRIVATE ${PROJECT_INCLUDES})
 add_executable(ltest linear_model_test.cpp)
 target_include_directories(ltest PRIVATE ${PROJECT_INCLUDES})
 
-add_executable(btest fitting_tree_stx.cpp)
-target_include_directories(btest PRIVATE ${PROJECT_INCLUDES})
-
-
 add_executable(ftest fitting_tree_test.cpp)
 target_include_directories(ftest PRIVATE ${PROJECT_INCLUDES})
+
+add_executable(threads ltestForThreads.cpp)
+target_include_directories(threads PRIVATE ${PROJECT_INCLUDES})
 
 
 

@@ -5,11 +5,13 @@
 #include <cstdint>
 #include <memory>
 #include <stx/btree_map.h>
-#include "greedy.hpp"
+#include "swing.hpp"
+
+namespace Swing{
 
 template<typename KeyType>
 struct LeafNode {
-    using Segment = typename Greedy::internal::GreedyPiecewiseLinearModel<KeyType, int>::CanonicalSegment::Segment; 
+    using Segment = typename Swing::internal::SwingPiecewiseLinearModel<KeyType, int>::CanonicalSegment::Segment; 
     std::vector<Segment> segments;
 
     size_t bytes_used() const {
@@ -31,17 +33,18 @@ public:
 
     void build(std::vector<KeyType> data) {
 
-        using Segment = typename Greedy::internal::GreedyPiecewiseLinearModel<KeyType, int>::CanonicalSegment::Segment; 
- 
+        using Segment = typename Swing::internal::SwingPiecewiseLinearModel<KeyType, int>::CanonicalSegment::Segment; 
+        
         // Build the tree index using greedy segmentation
         auto in = [&](int i){return data[i];};
         std::vector<Segment> segments;
         auto out = [&](const auto& cs) { 
-            auto result = cs.get_Canonicalsegment();
+            auto first_x = cs.first_x;
+            auto result = cs.get_Canonicalsegment(first_x);
             segments.push_back(result); };
         auto n = data.size();
         int parallelism = omp_get_num_procs();
-        Greedy::internal::make_segmentation_par(n, error_bound_, in, out, parallelism);
+        Swing::internal::make_segmentation_par(n, error_bound_, in, out, parallelism);
 
         for (const auto& seg : segments) {
             auto leaf = std::make_unique<LeafNode<KeyType>>();
@@ -57,7 +60,7 @@ public:
         using Segment = typename LeafNode<KeyType>::Segment;
         const Segment& seg = it->second->segments[0];
         if (key >= seg.first_x && key <= seg.last_x) {
-            size_t idx = seg.slope*(key)+seg.intercept;
+            size_t idx = seg.slope*(key- seg.first_x)+seg.intercept;
             return idx;
         } 
 
@@ -98,3 +101,4 @@ private:
     double error_bound_;
 
 };
+}
