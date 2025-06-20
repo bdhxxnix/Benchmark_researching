@@ -5,7 +5,6 @@ This repository benchmarks various Piecewise Linear Approximation (PLA) algorith
 ## Features
 - Parallel FRS and Greedy implementations
 - Easy-to-run benchmarking scripts
-- Plots and analysis
 
 ## Getting Started
 Clone the repo and install dependencies:
