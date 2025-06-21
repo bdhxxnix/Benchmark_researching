@@ -36,7 +36,7 @@ After preparing your dataset, build the project by running:
 This will generate all test runners inside the `build/` directory.
 
 
-# Run
+## Run
 Before running the tests, ensure your dataset is ready and placed in the correct directory.
 Then run the test by:
 ```bash
