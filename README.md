@@ -52,7 +52,7 @@ You can also navigate to the `build/` directory and execute individual test runn
 For example, to run only the PGM test:
 ```bash
 cd build/
-./pgmtest <dataset_path>
+./pgmtest ./your_dataset/data
 ```
 To capture all the outputs into a certain log file:
 ```bash
