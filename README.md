@@ -14,7 +14,7 @@ git clone https://github.com/bdhxxnix/PLABench.git
 ```
 
 ## Prepare datasets
-We write the preparation scripts based on SOSD repository: [text](https://github.com/learnedsystems/SOSD)
+We write the preparation scripts based on SOSD repository: [SOSD](https://github.com/learnedsystems/SOSD)
 - First, please install Python and use pip to download necessary dependencies `numpy` and `scipy`.
 - Second, you need to install the zstd software to decompress datasets:
 ```bash
