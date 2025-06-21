@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # build.sh - Build script for PLA Benchmark Project
-# Author: Li Hua
+# Author: JY Qin
 # Usage: Run this script from the root of your repo: ./build.sh
 
 set -e  # Exit immediately if a command fails
