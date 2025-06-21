@@ -40,7 +40,7 @@ This will generate all test runners inside the `build/` directory.
 Before running the tests, ensure your dataset is ready and placed in the correct directory.
 Then run the test by:
 ```bash
-./test.sh <dataset_path>
+./test.sh ./your_dataset/data
 ```
 This script will automatically execute the following tests in order:
 - Linear Test
@@ -57,5 +57,5 @@ cd build/
 To capture all the outputs into a certain log file:
 ```bash
 ./test.sh ./your_dataset/data > output.log 2>&1
-
+```
 This will save everything printed to the terminal into output.log.
