@@ -40,7 +40,7 @@ After preparing your dataset, build the project by running:
 
 ```bash
 ./build.sh
-
+```
 This will generate all test runners inside the build/ directory.
 
 
