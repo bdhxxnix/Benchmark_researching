@@ -14,9 +14,14 @@
 
 # Ignore temporary files
 build/
+<<<<<<< HEAD
 .vscode/
 
 # Ignore dataset and result directories
 data/
+=======
+.vscode
+data
+>>>>>>> ecf7c2c7b6f2b68d8e15f64187dc7e9f018d698e
 result/
 
