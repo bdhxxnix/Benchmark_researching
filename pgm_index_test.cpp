@@ -12,7 +12,6 @@
 #include <random>
 #include <chrono>
 
-#define FILE_NAME "../data/SOSD_Dataset/books"
 
 struct Result {
 	double build_time;
@@ -30,7 +29,7 @@ struct Result {
  * @return std::vector<K>
  */
 template<typename K>
-std::vector<K> load_data()
+std::vector<K> load_data(std::string FILE_NAME)
 {
 
     /* Open file. */
@@ -50,7 +49,6 @@ std::vector<K> load_data()
     in.read(reinterpret_cast<char *>(data.data()), n_keys * sizeof(K));
     in.close();
 
-    /* Sort the data in increasing order. */
     return data;
 }
 
@@ -115,14 +113,12 @@ void printout(std::vector<Result> results){
 
 
 template<typename K,typename T>
-void testForModel(std::vector<K> data) {
+void testForModel(std::vector<K> data, int begin = 2, int ed = 13) {
 	
 	
     Result result;	
 	std::vector<Result> results;
 
-	int begin = 2;
-	int ed = 13;
 	for(int i = begin; i< ed;i++){
 		for(int j = begin; j< ed;j++){
 			// Begin an evaluation with different eps and eps_rec
@@ -191,44 +187,50 @@ void testForModel(std::vector<K> data) {
 
 
 template<typename K>
-void experiment_Optimal(std::vector<K> data) {
+void experiment_Optimal(std::vector<K> data, int begin = 2, int ed = 13) {
 	
 	printf("The results for OptimalPLA:\n");
 	using PGM_Index1 = Optimal::PGMIndex<K>;
-	testForModel<K,PGM_Index1>(data);
+	testForModel<K,PGM_Index1>(data, begin, ed);
 
 }
 
 template<typename K>
-void experiment_Greedy(std::vector<K> data) {
+void experiment_Greedy(std::vector<K> data, int begin = 2, int ed = 13) {
 
 	
 	using PGM_Index = Greedy::PGMIndex<K>;
 	
 	printf("The results for GreedyPLA:\n");
-	testForModel<K,PGM_Index>(data);
+	testForModel<K,PGM_Index>(data, begin, ed);
 }
 
 template<typename K>
-void experiment_Swing(std::vector<K> data) {
+void experiment_Swing(std::vector<K> data, int begin = 2, int ed = 13) {
 	
 		
 
 	using PGM_Index = Swing::PGMIndex<K>;
 	printf("The results for SwingFilter:\n");
-	testForModel<K,PGM_Index>(data);
+	testForModel<K,PGM_Index>(data, begin, ed);
 }
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
+	if (argc < 2) {
+        std::cerr << "Usage: ./fitting_tree_test <dataset_path>\n";
+        return 1;
+    }
+
+    std::string file_name = argv[1];
 	// Load the data
 	typedef uint64_t K;
 	std::vector<K> data;
-	data = load_data<K>();
+	data = load_data<K>(file_name);
 
 	data.pop_back();
-	std::cout<<data[data.size()-1]<<std::endl;
+	printf("We are running on PGM test\n");
 	printf("The size of the data is %ld\n",data.size());
 	
 	experiment_Swing(data);

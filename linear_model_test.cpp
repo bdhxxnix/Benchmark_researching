@@ -384,12 +384,18 @@ void experiment(std::vector<K> data,int start, int end,int threads_num = 32)
 
 int main(int argc ,char* argv[]){
 
-    std::string file_path = "../data/SOSD_Dataset/fb"; 
+    if (argc < 2) {
+        std::cerr << "Usage: ./fitting_tree_test <dataset_path>\n";
+        return 1;
+    }
+
+    std::string file_path = argv[1];
     
     // Read the data from data1.txt
     std::vector<uint64_t> data;
     data = load_data<uint64_t>(file_path);
-
+    
+    printf("We are running on linear test\n");
     printf("The size of data is %ld\n",data.size());
     
     experiment(data, 2, 14);

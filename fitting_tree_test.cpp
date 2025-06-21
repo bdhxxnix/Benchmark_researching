@@ -8,7 +8,6 @@
 #include <random>
 
 typedef uint64_t K; // Define the type of the data, can be changed to any other type
-#define FILE_NAME "../data/SOSD_Dataset/uniform"
 
 struct Result {
 	double build_time;
@@ -23,7 +22,7 @@ struct Result {
  * @return std::vector<K>
  */
 template<typename K>
-std::vector<K> load_data()
+std::vector<K> load_data(std::string FILE_NAME)
 {
 
     /* Open file. */
@@ -187,12 +186,20 @@ void experiment_Optimal(std::vector<K> data, int threads_num = 16) {
 
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+	// Check if the dataset path is provided
+	if (argc < 2) {
+        std::cerr << "Usage: ./fitting_tree_test <dataset_path>\n";
+        return 1;
+    }
+
+    std::string file_path = argv[1];
 
     // Test the FittingTree class
     std::vector<K> data; 
-    data = load_data<K>(); 
-	
+    data = load_data<K>(file_path); 
+
+	printf("We are running on FIT test\n");
 	printf("The size of the data, %ld\n",data.size());
     
 	experiment_swing(data); 

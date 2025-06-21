@@ -192,11 +192,16 @@ std::vector<size_t> experiment_Optimal(std::vector<K> data,size_t epsilon = 32,i
 
 int main(int argc ,char* argv[]){
 
-    std::string file_path = "../data/SOSD_Dataset/osm"; 
+    if (argc < 2) {
+        std::cerr << "Usage: ./fitting_tree_test <dataset_path>\n";
+        return 1;
+    }
+
+    std::string file_path = argv[1];
     // Read the data from data1.txt
     std::vector<uint64_t> data;
     data = load_data<uint64_t>(file_path);
-    std::cout<<data[data.size()-1]<<std::endl;
+    printf("We are running on linear test with varying threads\n");
     printf("The size of data is %ld\n",data.size());
     
     experiment_Greedy(data, 4);
