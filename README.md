@@ -21,7 +21,7 @@ We write the preparation scripts based on SOSD repository: [SOSD](https://github
 ```bash
 sudo apt install zstd
 ```
-- Third, run the scrip and wait for everything to be ready:
+- Third, run the script and wait for everything to be ready:
 ```bash
 bash prepare_data.sh
 ```
