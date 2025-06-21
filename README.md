@@ -8,8 +8,7 @@ This project aims to systematically compare different ε-PLA algorithms under un
 - **PGM-Index**: hierarchical index using PLA at each level
 - **FITing-Tree**: learned B+ Tree with PLA-based leaf segments
 
-# Getting started
-## Clone the repo
+## Getting started
 Clone the repo and install dependencies:
 ```bash
 git clone https://github.com/bdhxxnix/PLABench.git
