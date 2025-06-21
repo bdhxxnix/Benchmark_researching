@@ -330,7 +330,7 @@ void checkForEpsilon(size_t n ,Fin data, std::vector<SegmentType> segments,int b
     auto start = segments[begin].first_x;
     auto end = segments[ed].last_x;
 
-    int segmnt_idx = begin;
+    size_t segmnt_idx = begin;
     auto seg = segments[segmnt_idx];
     auto slope = seg.slope;
     auto intercept = seg.intercept;
@@ -352,8 +352,8 @@ void checkForEpsilon(size_t n ,Fin data, std::vector<SegmentType> segments,int b
 
         if (data(i) == last_x) {
             if(max_residual > epsilon + 1) {
-                printf("The max_residual for Segment %d is %f\n", segmnt_idx, max_residual);
-                printf("The slope is %Lf and the intercept is %Lf\n", slope, intercept);
+                printf("The max_residual for Segment %ld is %f\n", segmnt_idx, max_residual);
+                printf("The slope is %Lf and the intercept is %ld\n", slope, intercept);
                 printf("The first_x is %ld and the last_x is %ld\n", first_x, last_x);
             }
             max_residual = std::numeric_limits<double>::min();

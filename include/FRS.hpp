@@ -275,7 +275,7 @@ void checkForEpsilon(Fin data, std::vector<SegmentType> segments,int begin = 0,i
     auto start = segments[begin].first_x;
     auto end = segments[ed].last_x;
     
-    int segmnt_idx = begin;
+    size_t segmnt_idx = begin;
     auto seg = segments[segmnt_idx];
     auto slope = seg.slope;
     auto intercept = seg.intercept;
@@ -291,7 +291,7 @@ void checkForEpsilon(Fin data, std::vector<SegmentType> segments,int begin = 0,i
         {
             // if the max residual is larger than the error bound, printout the max_residual
             if(max_residual > epsilon + 1){
-                printf("The max_residual for Segment %d is %f\n",segmnt_idx,max_residual);
+                printf("The max_residual for Segment %ld is %f\n",segmnt_idx,max_residual);
                 printf("The slope is %Lf and the intercept is %Lf\n",slope,intercept);
                 printf("The first_x is %ld and the last_x is %ld\n",first_x,last_x);
             }

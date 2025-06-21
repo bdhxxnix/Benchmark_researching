@@ -174,13 +174,13 @@ void testForModel(std::vector<K> data) {
 			result.index_size = model.size_in_bytes();
 			
 			results.push_back(result);
-			for(int i = 0;i<residuals[0].size();i++){
+			for(size_t i = 0;i<residuals[0].size();i++){
 				long res = 0;
-				for(int j = 0;j<residuals.size();j++){
+				for(size_t j = 0;j<residuals.size();j++){
 					res +=residuals[j][i];
 				}
 				double res_d = res/10000.0;
-				printf("The average residual for layer %d is %f\n",i,res_d);
+				printf("The average residual for layer %ld is %f\n",i,res_d);
 			}	
 			printf("\n");
 		}
