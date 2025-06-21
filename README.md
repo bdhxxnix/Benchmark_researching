@@ -1,13 +1,6 @@
 # PLA Benchmark
 
 This repository benchmarks various Piecewise Linear Approximation (PLA) algorithms like `GreedyPLA`, `OptimalPLA`, `SwingFilter` used in learned indexes (e.g. PGM-Index, FITing-Tree).
-## Table of Contents
-
-- [Introduction](#-introduction)
-- [Getting Started](#-getting-started)
-- [Compile](#️-Compile)
-- [Run](#-Run)
-- [Results](#-results)
 
 ## Introduction
 
@@ -41,7 +34,7 @@ After preparing your dataset, build the project by running:
 ```bash
 ./build.sh
 ```
-This will generate all test runners inside the build/ directory.
+This will generate all test runners inside the `build/` directory.
 
 
 # Run
@@ -49,20 +42,19 @@ Before running the tests, ensure your dataset is ready and placed in the correct
 Then run the test by:
 ```bash
 ./test.sh <dataset_path>
-
+```
 This script will automatically execute the following tests in order:
-
 - Linear Test
 - Linear Test with Different Threads
 - PGM Test
 - FIT Test
 
-You can also navigate to the build/ directory and execute individual test runners manually.
+You can also navigate to the `build/` directory and execute individual test runners manually.
 For example, to run only the PGM test:
 ```bash
 cd build/
 ./pgmtest <dataset_path>
-
+```
 To capture all the outputs into a certain log file:
 ```bash
 ./test.sh ./your_dataset/data > output.log 2>&1
