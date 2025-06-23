@@ -5,7 +5,7 @@ Structures: Theoretical and Empirical Analysis`.
 We benchmark various Piecewise Linear Approximation (PLA) algorithms like `GreedyPLA`, `OptimalPLA`, `SwingFilter` used in learned indexes (e.g. PGM-Index, FITing-Tree).
 
 ## Note
-All experiments in the paper are conducted using the `O0` optimization level to prevent the compiler from applying vectorization optimizations to some algorithms while not others, thereby ensuring fairness and direct comparability in the experimental comparisons.
+All experiments in the paper are conducted using the `O0` optimization level to prevent the compiler from applying vectorization optimizations to some algorithms while not others, thereby ensuring fairness and direct comparability in the performance comparison of the PLA algorithms.
 
 ## Introduction
 
